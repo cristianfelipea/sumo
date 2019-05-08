@@ -1,0 +1,40 @@
+COMANDOS WIFI
+los comandos tienen orden
+
+el enter es : AT<CR><LF> 
+
+reset cablearlo para que el micro lo haga
+AT+RST enter
+
+apagar el eco
+ATE0 enter
+
+manejo de multiples conexiones o softwares
+AT+CIPMUX=1 enter
+debe contestar ok
+
+modo del wifi va a ser el modo 1, puede ser cliente o accespoint, nosotros vamos a ser clientes
+AT+CWMODE=1 enter
+debe contestar ok
+
+comando para scanear el espectro y traer los nombres de las redes que está viendo
+AT+CWLAP enter
+
+comando para conectarse a una red
+AT+CWJAP="nombre de la red que se quiere conectar debe ser igual con mayusculas y espacios","contraseña" enter
+debe contestar con una IP asignada
+
+obtenter la ip 
+AT+CIFSR enter 
+
+conectarse con google
+AT+CIPSTART=4, "TCP","www.google.com",80 enter
+
+envio de datos
+AT+CIPSEND=4,5 enter
+5 los bites que quiero enviar
+debe quedar con un cursor abajo listo para enviar los 5 bites
+
+TCPSERVE hercules pestaña
+por 3000 listen
+ir al chrome, escribir local host:3000 enter
