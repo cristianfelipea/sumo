@@ -67,6 +67,10 @@
 enum{//me va servir para manear tiempos
 		TLED_1=0,
 		TLED_2,
+		mov,
+		mov1,
+		mov2,
+		mov3,
 
 		TIMERS,
 
@@ -98,17 +102,17 @@ ADC_HandleTypeDef hadc1;
 
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
-TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
 
 
-ST  st_m=CHECK, st_s=CHECKS;
+ST  st_m=QUIET, st_s=CHECKS;
 ST_P st_p1=P_CHECK,st_p2=P_CHECK,st_p3=P_CHECK,st_p4=P_CHECK;
 
- volatile uint16_t timers[TIMERS];
- volatile char copia[64];
-
+volatile uint16_t timers[TIMERS];
+volatile char copia[64];
+volatile int voltaje, voltaje1,voltaje2,voltaje3,voltaje4,voltaje0,funciona;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -116,13 +120,17 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
-static void MX_TIM3_Init(void);
+static void MX_TIM4_Init(void);
 static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 void CDC_Receive_Callback(uint8_t *buf,uint32_t len);
 void led1_process();
 void check();
 void checks();
+void ADC();
+void ADCD();
+void ADCDD();
+void ADCDDD();
 
 /* USER CODE END PFP */
 
@@ -160,9 +168,9 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_TIM1_Init();
-  MX_TIM2_Init();
   MX_USB_DEVICE_Init();
-  MX_TIM3_Init();
+  MX_TIM2_Init();
+  MX_TIM4_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim2);
@@ -170,13 +178,37 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+  /*while(1){
+	if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12)==0 ){
+
+
+		 HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, 1);
+		  		}
+
+	else{
+		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, 0);
+	}
+}
+
+*/
+  HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_2);
+__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_1,0);
+__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_2,0);
+HAL_Delay(5000);
   while (1)
   {
 
-	  check();
-	  checks();
-	 // led1_process();
+//  __HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_1,6000);
+ //__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_2,9000);// no se mueve para atras
 
+	  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+
+	 check();
+	//checks();
+	 ADC();
+	 ADCD();
 
 
     /* USER CODE END WHILE */
@@ -312,7 +344,7 @@ static void MX_TIM1_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
+  if (HAL_TIM_OC_Init(&htim1) != HAL_OK)
   {
     Error_Handler();
   }
@@ -322,14 +354,13 @@ static void MX_TIM1_Init(void)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.OCMode = TIM_OCMODE_TIMING;
   sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
   sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
-  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {
     Error_Handler();
   }
@@ -347,7 +378,6 @@ static void MX_TIM1_Init(void)
   /* USER CODE BEGIN TIM1_Init 2 */
 
   /* USER CODE END TIM1_Init 2 */
-  HAL_TIM_MspPostInit(&htim1);
 
 }
 
@@ -397,50 +427,65 @@ static void MX_TIM2_Init(void)
 }
 
 /**
-  * @brief TIM3 Initialization Function
+  * @brief TIM4 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_TIM3_Init(void)
+static void MX_TIM4_Init(void)
 {
 
-  /* USER CODE BEGIN TIM3_Init 0 */
+  /* USER CODE BEGIN TIM4_Init 0 */
 
-  /* USER CODE END TIM3_Init 0 */
+  /* USER CODE END TIM4_Init 0 */
 
-  TIM_SlaveConfigTypeDef sSlaveConfig = {0};
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
 
-  /* USER CODE BEGIN TIM3_Init 1 */
+  /* USER CODE BEGIN TIM4_Init 1 */
 
-  /* USER CODE END TIM3_Init 1 */
-  htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 0;
-  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 0xffff;
-  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 6;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 9999;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
   {
     Error_Handler();
   }
-  sSlaveConfig.SlaveMode = TIM_SLAVEMODE_EXTERNAL1;
-  sSlaveConfig.InputTrigger = TIM_TS_TI1FP1;
-  sSlaveConfig.TriggerPolarity = TIM_TRIGGERPOLARITY_FALLING;
-  sSlaveConfig.TriggerFilter = 15;
-  if (HAL_TIM_SlaveConfigSynchronization(&htim3, &sSlaveConfig) != HAL_OK)
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
   {
     Error_Handler();
   }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN TIM3_Init 2 */
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
 
-  /* USER CODE END TIM3_Init 2 */
+  /* USER CODE END TIM4_Init 2 */
+  HAL_TIM_MspPostInit(&htim4);
 
 }
 
@@ -462,9 +507,6 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_RESET);
-
   /*Configure GPIO pin : PC13 */
   GPIO_InitStruct.Pin = GPIO_PIN_13;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -472,20 +514,17 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB12 PB13 PB14 PB15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PB3 PB4 PB5 PB6 
-                           PB7 PB8 */
-  GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6 
-                          |GPIO_PIN_7|GPIO_PIN_8;
+  /*Configure GPIO pin : PB12 */
+  GPIO_InitStruct.Pin = GPIO_PIN_12;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA8 */
+  GPIO_InitStruct.Pin = GPIO_PIN_8;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 }
 
@@ -504,65 +543,127 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 }
 
 
-/*
-void led1_process(){
-	switch(st_led1){}
-
-}*/
 
 void check(){
 	switch(st_m){
-	case CHECK:
-		//revisar motores
-		break;
 
 	case CHECKS:
+		//del B12 al B15 son los char, A8 Y A9 QTR
+		//ADC de los faros
+
+		//sensor de ataque
+		if(voltaje1>900 && voltaje1<1150){//30cm
+			st_m=GO;
+		}
+
+		//segundo faro
+
+		if(voltaje2>900 && voltaje2<1150){//30cm
+		    st_m=GO;
+		}
+
+
+		//sensor de derecho del carrito viendolo de frente
+
+
+		/*if(voltaje3>1300 && voltaje3<1390){//30cm
+			timers[mov]=500;
+			st_m=IZQ;
+		}
+
+
+	  //sensor de izquierdo del carrito viendolo de frente
+
+		if(voltaje4>1300 && voltaje4<1390){//30cm
+			timers[mov1]=500;
+			st_m=DER;
+		}
+
+*/
+
+		//sensor de piso
+		if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_8)==0){
+			st_m=REV;
+
+		}
+
+		else{//blanco
+			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, 0);
+			st_m=GO;
+		}
+
 		//revisar sensores
 		break;
 
 	case QUIET:
 		//apagar motores
-
-		  	  	  HAL_GPIO_WritePin(GPIOB,IN1_Pin, GPIO_PIN_RESET);//	B12
-				  HAL_GPIO_WritePin(GPIOB, IN2_Pin, GPIO_PIN_RESET);//B13
-				  HAL_GPIO_WritePin(GPIOB,IN3_Pin, GPIO_PIN_RESET);//	B12
-				  HAL_GPIO_WritePin(GPIOB, IN4_Pin, GPIO_PIN_RESET);//B13
+		__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_1,5000);
+		__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_2,0);
+		st_m=CHECKS;
 		break;
 
 	case GO:
-		HAL_GPIO_WritePin(GPIOB,IN1_Pin, GPIO_PIN_RESET);//	B12
-		HAL_GPIO_WritePin(GPIOB, IN2_Pin, GPIO_PIN_RESET);//B13
-		HAL_GPIO_WritePin(GPIOB,IN3_Pin, GPIO_PIN_RESET);//	B12
-		HAL_GPIO_WritePin(GPIOB, IN4_Pin, GPIO_PIN_RESET);//B13
+		__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_1,9000);
+	    __HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_2,4500);//izq
+		st_m=CHECKS;
 		break;
 
 	case IZQ:
-		  	   HAL_GPIO_WritePin(GPIOB,IN1_Pin, GPIO_PIN_SET);//	B12
-			   HAL_GPIO_WritePin(GPIOB, IN2_Pin, GPIO_PIN_RESET);//B13
-			   HAL_GPIO_WritePin(GPIOB,IN3_Pin, GPIO_PIN_RESET);//	B12
-			   HAL_GPIO_WritePin(GPIOB, IN4_Pin, GPIO_PIN_SET);//B13
+		__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_1,5500);
+	    __HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_2,4500);
+
+		st_m=CHECKS;
 		break;
 
 	case DER:
-			  HAL_GPIO_WritePin(GPIOB,IN1_Pin, GPIO_PIN_RESET);//	B12
-			  HAL_GPIO_WritePin(GPIOB, IN2_Pin, GPIO_PIN_SET);//B13
-			  HAL_GPIO_WritePin(GPIOB,IN3_Pin, GPIO_PIN_SET);//	B12
-			  HAL_GPIO_WritePin(GPIOB, IN4_Pin, GPIO_PIN_RESET);//B13
+		__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_1,4000);
+	    __HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_2,6000);
+
+		st_m=CHECKS;
 		break;
 
 	case REV:
-		HAL_GPIO_WritePin(GPIOB,IN1_Pin, GPIO_PIN_RESET);//	B12
-		HAL_GPIO_WritePin(GPIOB, IN2_Pin, GPIO_PIN_SET);//B13
-		HAL_GPIO_WritePin(GPIOB,IN3_Pin, GPIO_PIN_RESET);//	B12
-		HAL_GPIO_WritePin(GPIOB, IN4_Pin, GPIO_PIN_SET);//B13
+		__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_1,5500);
+		__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_2,0);
+		HAL_Delay(2000);
+		st_m=CHECKS;
 		break;
 	}
 }
-void checks(){
-	switch(st_p1){
-	}
+
+void ADC(){
+	  HAL_ADC_Start(&hadc1);
+	HAL_ADC_ConfigChannel(&hadc1,ADC_CHANNEL_0);
+	   				// INICIA EL ADC
+		 HAL_ADC_PollForConversion(&hadc1,100); 	// MIRA CADA SEGUNDO
+		 voltaje1=HAL_ADC_GetValue(&hadc1);
+		 voltaje2=((voltaje1*1.1)*1000)/(4096);// OBTIENE EL VALOR DEL ADC
+		 HAL_ADC_Stop(&hadc1);
+}
+void ADCD(){
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_ConfigChannel(&hadc1,ADC_CHANNEL_1);
+     				// INICIA EL ADC
+	 HAL_ADC_PollForConversion(&hadc1,100); 	// MIRA CADA SEGUNDO
+	 voltaje3=HAL_ADC_GetValue(&hadc1);
+	 voltaje4=((voltaje3*1.1)*1000)/(4096);// OBTIENE EL VALOR DEL ADC
+	 HAL_ADC_Stop(&hadc1);
+}
+void ADCDD(){
+
 }
 
+void ADCDDD(){
+
+}
+void checks(){
+	switch(st_s){
+
+	case CHECKS:
+
+		break;
+	}
+}
 
 void CDC_Receive_Callback(uint8_t *buf,uint32_t len){
 	//P=atoi(buf);
@@ -600,4 +701,4 @@ void assert_failed(uint8_t *file, uint32_t line)
 }
 #endif /* USE_FULL_ASSERT */
 
-/******** (C) COPYRIGHT STMicroelectronics **END OF FILE*/
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
