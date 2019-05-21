@@ -192,21 +192,21 @@ int main(void)
 }
 
 */
-  HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_2);
+
+
+
+
+
+HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_1);
+HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_2);
 __HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_1,0);
-__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_2,0);
-HAL_Delay(5000);
+__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_2,5000);
+HAL_Delay(5 000);
+
   while (1)
   {
 
-//  __HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_1,6000);
- //__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_2,9000);// no se mueve para atras
-
-	  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-
-	 check();
-	//checks();
+	checks();
 	 ADC();
 	 ADCD();
 
@@ -566,7 +566,7 @@ void check(){
 		//sensor de derecho del carrito viendolo de frente
 
 
-		/*if(voltaje3>1300 && voltaje3<1390){//30cm
+		if(voltaje3>1300 && voltaje3<1390){//30cm
 			timers[mov]=500;
 			st_m=IZQ;
 		}
@@ -579,7 +579,7 @@ void check(){
 			st_m=DER;
 		}
 
-*/
+
 
 		//sensor de piso
 		if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_8)==0){
@@ -598,13 +598,13 @@ void check(){
 	case QUIET:
 		//apagar motores
 		__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_1,5000);
-		__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_2,0);
+		__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_2,5000);
 		st_m=CHECKS;
 		break;
 
 	case GO:
-		__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_1,9000);
-	    __HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_2,4500);//izq
+		__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_1,4500);//izq
+	    __HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_2,7000);
 		st_m=CHECKS;
 		break;
 
@@ -623,7 +623,7 @@ void check(){
 		break;
 
 	case REV:
-		__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_1,5500);
+		__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_1,6000);
 		__HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_2,0);
 		HAL_Delay(2000);
 		st_m=CHECKS;
@@ -649,21 +649,7 @@ void ADCD(){
 	 voltaje4=((voltaje3*1.1)*1000)/(4096);// OBTIENE EL VALOR DEL ADC
 	 HAL_ADC_Stop(&hadc1);
 }
-void ADCDD(){
 
-}
-
-void ADCDDD(){
-
-}
-void checks(){
-	switch(st_s){
-
-	case CHECKS:
-
-		break;
-	}
-}
 
 void CDC_Receive_Callback(uint8_t *buf,uint32_t len){
 	//P=atoi(buf);
